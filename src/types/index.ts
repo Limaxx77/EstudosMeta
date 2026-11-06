@@ -190,6 +190,8 @@ export interface AppState {
   timer: TimerState | null;
   logs: QuestionLog[];
   answers: Record<string, AnswerRecord>;
+  /** Respostas às provas anteriores oficiais, por id "<prova>-<número>". */
+  pastAnswers: Record<string, AnswerRecord>;
   favorites: string[];
   reviews: ReviewItem[];
   reviewLogs: ReviewLog[];

@@ -1,5 +1,6 @@
-import { Menu, Settings, Target, X } from 'lucide-react';
+import { LogOut, Menu, Settings, Target, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useStore } from '../hooks/useStore';
 import { cx } from './ui';
 
 export const NAV = [
@@ -16,6 +17,7 @@ export function scrollToId(id: string) {
 }
 
 export function Header() {
+  const { profile, logout } = useStore();
   const [active, setActive] = useState('inicio');
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -57,7 +59,7 @@ export function Header() {
           </span>
           <span className="leading-tight">
             <span className="block text-sm font-extrabold text-white">Minha Aprovação</span>
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Kauã Lima</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{profile.name}</span>
           </span>
         </button>
 
@@ -74,6 +76,9 @@ export function Header() {
           ))}
           <button type="button" onClick={() => go('config')} className="ml-1 rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white" aria-label="Configurações e backup">
             <Settings size={18} />
+          </button>
+          <button type="button" onClick={logout} className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white" aria-label="Sair" title="Sair">
+            <LogOut size={18} />
           </button>
         </nav>
 
@@ -95,6 +100,9 @@ export function Header() {
                 {n.label}
               </button>
             ))}
+            <button type="button" onClick={logout} className="col-span-2 flex min-h-[46px] items-center justify-center gap-2 rounded-xl border border-white/10 px-3 text-sm font-semibold text-slate-300">
+              <LogOut size={16} /> Sair ({profile.firstName})
+            </button>
           </div>
         </nav>
       )}

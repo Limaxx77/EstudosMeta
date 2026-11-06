@@ -1,16 +1,17 @@
-import { AlertTriangle, Download, HardDrive, Settings as SettingsIcon, Trash2, Upload } from 'lucide-react';
+import { AlertTriangle, Download, HardDrive, LogOut, Settings as SettingsIcon, Trash2, Upload, UserRound } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useToast } from '../components/Toast';
 import { Button, Card, Field, SectionHeader, cx, inputCls } from '../components/ui';
 import { useStore } from '../hooks/useStore';
-import { clearState, createDefaultState, exportState, readBackupFile } from '../services/storage';
+import { PROFILE_MAP } from '../data/profiles';
+import { clearState, createDefaultState, exportState, readBackupFile, type Backup } from '../services/storage';
 import type { AppState } from '../types';
 
 export function Settings() {
-  const { state, update, replace, storageError } = useStore();
+  const { state, update, replace, storageError, profile, logout } = useStore();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [pending, setPending] = useState<AppState | null>(null);
+  const [pending, setPending] = useState<Backup | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
   const onFile = async (file: File | undefined) => {
@@ -28,7 +29,7 @@ export function Settings() {
 
   const confirmImport = () => {
     if (!pending) return;
-    replace({ ...pending, timer: pending.timer ?? null });
+    replace({ ...pending.state, timer: pending.state.timer ?? null });
     setPending(null);
     toast('Progresso restaurado com sucesso.');
   };
@@ -39,7 +40,7 @@ export function Settings() {
       if (typed !== null) toast('Texto não confere — nada foi apagado.', 'info');
       return;
     }
-    clearState();
+    clearState(profile.id);
     replace(createDefaultState());
     toast('Todos os dados foram apagados.', 'info');
   };
@@ -56,6 +57,20 @@ export function Settings() {
         </div>
       )}
       <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-5 lg:col-span-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 text-accent ring-1 ring-accent/30">
+              <UserRound size={19} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm font-bold text-white">{profile.name}</div>
+              <div className="truncate text-xs text-slate-400">{profile.email} · dados salvos só neste navegador</div>
+            </div>
+            <Button variant="outline" size="sm" onClick={logout}>
+              <LogOut size={15} /> Sair / trocar perfil
+            </Button>
+          </div>
+        </Card>
         <Card className="p-5">
           <div className="mb-4 text-sm font-bold text-white">Horários</div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -87,7 +102,7 @@ export function Settings() {
             <Button
               variant="primary"
               onClick={() => {
-                exportState(state);
+                exportState(state, profile.id);
                 toast('Backup gerado. Guarde o arquivo em local seguro.');
               }}
             >
@@ -102,7 +117,12 @@ export function Settings() {
           {pending && (
             <div className="mt-4 rounded-xl border border-warn/30 bg-warn/10 p-3 text-sm">
               <div className="font-semibold text-yellow-100">Backup válido encontrado</div>
-              <div className="mt-1 text-xs text-yellow-100/80">{summary(pending)}</div>
+              <div className="mt-1 text-xs text-yellow-100/80">{summary(pending.state)}</div>
+              {pending.profile && pending.profile !== profile.id && (
+                <div className="mt-2 rounded-lg bg-bad/15 px-2 py-1.5 text-xs font-semibold text-red-200">
+                  Atenção: este backup é do perfil de {PROFILE_MAP[pending.profile]?.name ?? pending.profile}, não do seu.
+                </div>
+              )}
               <div className="mt-2 text-xs text-yellow-100/80">Ao confirmar, os dados atuais deste navegador serão substituídos.</div>
               <div className="mt-3 flex gap-2">
                 <Button size="sm" variant="warn" onClick={confirmImport}>

@@ -7,7 +7,7 @@ import { useStore } from '../hooks/useStore';
 import { cuiabaTimestamp } from '../utils/date';
 
 export function Hero() {
-  const { state } = useStore();
+  const { state, profile } = useStore();
   const now = useNow(1000);
   const examTime = state.settings.examTime;
   const target = cuiabaTimestamp(EXAM_DATE, examTime || '00:00');
@@ -29,7 +29,7 @@ export function Hero() {
       <div className="relative mx-auto grid max-w-6xl gap-10 px-4 lg:grid-cols-[1.15fr_1fr] lg:items-center">
         <div className="animate-fadeUp">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-blue-200">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> Kauã Lima
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent" /> {profile.name}
           </div>
           <h1 className="text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-6xl">
             MINHA JORNADA

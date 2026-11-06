@@ -1,5 +1,9 @@
-// Temas autorais para treino da prova discursiva (não são temas oficiais da banca).
+// Temas para treino da prova discursiva. Os dois primeiros são temas OFICIAIS
+// de provas anteriores da Selecon (identificados no próprio texto); os demais
+// são autorais, criados a partir do edital.
 export const ESSAY_THEMES: string[] = [
+  'Tema oficial Selecon (Câmara de Cuiabá 2021): conceitue orçamento público e cite as fases do ciclo orçamentário em ordem cronológica, relacionando uma ação a cada etapa',
+  'Tema oficial Selecon (Câmara de Rio Brilhante 2024): como melhorar os serviços oferecidos pela Câmara Municipal de modo criativo?',
   'A importância da transparência e do acesso à informação no Poder Legislativo municipal',
   'Os princípios da Administração Pública e a qualidade do atendimento ao cidadão',
   'O papel da Câmara Municipal na fiscalização do Poder Executivo',

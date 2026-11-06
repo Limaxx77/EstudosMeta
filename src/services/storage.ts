@@ -1,7 +1,14 @@
 import type { AppState, DayProgress } from '../types';
 
-export const STORAGE_KEY = 'minha-aprovacao:state';
+/** Chave antiga (antes dos perfis). Os dados dela pertencem ao perfil do Kauã. */
+const LEGACY_KEY = 'minha-aprovacao:state';
+const LEGACY_OWNER = 'kaua';
 export const STATE_VERSION = 1;
+
+/** Cada perfil tem seus próprios dados no navegador. */
+export function storageKey(profileId: string): string {
+  return `minha-aprovacao:state:${profileId}`;
+}
 
 export function defaultDayProgress(): DayProgress {
   return {
@@ -30,6 +37,7 @@ export function createDefaultState(): AppState {
     timer: null,
     logs: [],
     answers: {},
+    pastAnswers: {},
     favorites: [],
     reviews: [],
     reviewLogs: [],
@@ -85,6 +93,7 @@ export function normalizeState(raw: unknown): AppState {
     timer: isObj(migrated.timer) ? (migrated.timer as unknown as AppState['timer']) : null,
     logs: arr(migrated.logs, []),
     answers: obj(migrated.answers, {}),
+    pastAnswers: obj(migrated.pastAnswers, {}),
     favorites: arr<string>(migrated.favorites, []).filter((x) => typeof x === 'string'),
     reviews: arr(migrated.reviews, []),
     reviewLogs: arr(migrated.reviewLogs, []),
@@ -107,7 +116,20 @@ function migrate(raw: Record<string, unknown>): Record<string, unknown> {
 
 export type LoadResult = { state: AppState; error: string | null };
 
-export function loadState(): LoadResult {
+/** Copia os dados salvos antes da criação dos perfis para o perfil do dono. */
+function migrateLegacy(key: string, profileId: string): void {
+  try {
+    if (profileId !== LEGACY_OWNER || localStorage.getItem(key)) return;
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy) localStorage.setItem(key, legacy);
+  } catch {
+    /* ignora */
+  }
+}
+
+export function loadState(profileId: string): LoadResult {
+  const STORAGE_KEY = storageKey(profileId);
+  migrateLegacy(STORAGE_KEY, profileId);
   try {
     const text = localStorage.getItem(STORAGE_KEY);
     if (!text) return { state: createDefaultState(), error: null };
@@ -124,38 +146,45 @@ export function loadState(): LoadResult {
   }
 }
 
-export function saveState(state: AppState): string | null {
+export function saveState(state: AppState, profileId: string): string | null {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(storageKey(profileId), JSON.stringify(state));
     return null;
   } catch (e) {
     return `Falha ao salvar no navegador: ${(e as Error).message}`;
   }
 }
 
-export function clearState(): void {
+export function clearState(profileId: string): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(storageKey(profileId));
+    if (profileId === LEGACY_OWNER) localStorage.removeItem(LEGACY_KEY);
   } catch {
     /* ignora */
   }
 }
 
-export function exportState(state: AppState): void {
-  const payload = { ...state, exportedAt: new Date().toISOString(), app: 'minha-aprovacao' };
+export function exportState(state: AppState, profileId: string): void {
+  const payload = { ...state, exportedAt: new Date().toISOString(), app: 'minha-aprovacao', profile: profileId };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
   a.href = url;
-  a.download = `minha-aprovacao-backup-${stamp}.json`;
+  a.download = `minha-aprovacao-${profileId}-backup-${stamp}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function readBackupFile(file: File): Promise<AppState> {
+export interface Backup {
+  state: AppState;
+  /** Perfil que gerou o backup (backups antigos não têm essa informação). */
+  profile: string | null;
+}
+
+export async function readBackupFile(file: File): Promise<Backup> {
   if (file.size > 10 * 1024 * 1024) throw new Error('Arquivo muito grande para ser um backup.');
   const text = await file.text();
   let parsed: unknown;
@@ -164,5 +193,6 @@ export async function readBackupFile(file: File): Promise<AppState> {
   } catch {
     throw new Error('O arquivo não é um JSON válido.');
   }
-  return normalizeState(parsed);
+  const profile = isObj(parsed) && typeof parsed.profile === 'string' ? parsed.profile : null;
+  return { state: normalizeState(parsed), profile };
 }

@@ -1,4 +1,4 @@
-import { BookmarkPlus, ChevronLeft, ChevronRight, ClipboardList, Info, ListChecks, Plus, RefreshCw, Star, Trash2 } from 'lucide-react';
+import { BookmarkPlus, ChevronLeft, ChevronRight, ClipboardList, FileCheck2, Info, ListChecks, Plus, RefreshCw, Star, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useToast } from '../components/Toast';
 import { Badge, Button, Card, Empty, Field, SectionHeader, cx, inputCls } from '../components/ui';
@@ -9,6 +9,7 @@ import { useToday } from '../hooks/useToday';
 import type { SubjectId } from '../types';
 import { addLog, ensureReview } from '../utils/actions';
 import { fmtDate } from '../utils/date';
+import { PastExams } from './PastExams';
 import { Simulados } from './Simulados';
 
 type StatusFilter = 'todas' | 'nao_respondidas' | 'erradas' | 'favoritas';
@@ -298,9 +299,10 @@ function ManualLog() {
 export function Questions() {
   const { state } = useStore();
   // Se houver um simulado em andamento (ex.: após recarregar a página), abre direto nele.
-  const [tab, setTab] = useState<'banco' | 'manual' | 'simulados'>(() => (state.activeSimulado ? 'simulados' : 'banco'));
+  const [tab, setTab] = useState<'banco' | 'provas' | 'manual' | 'simulados'>(() => (state.activeSimulado ? 'simulados' : 'banco'));
   const tabs = [
     { id: 'banco' as const, l: 'Resolver no site', icon: <ListChecks size={15} /> },
+    { id: 'provas' as const, l: 'Provas anteriores', icon: <FileCheck2 size={15} /> },
     { id: 'manual' as const, l: 'Registro manual', icon: <ClipboardList size={15} /> },
     { id: 'simulados' as const, l: 'Simulados', icon: <Star size={15} /> },
   ];
@@ -310,9 +312,9 @@ export function Questions() {
         eyebrow="Questões e exercícios"
         title="Treinar, registrar e simular"
         icon={<ListChecks size={14} />}
-        subtitle={`Banco local com ${QUESTIONS.length} questões autorais sobre o conteúdo do edital, correção automática e estatísticas. Todo registro alimenta o desempenho.`}
+        subtitle={`Banco com ${QUESTIONS.length} questões autorais sobre o edital, provas anteriores reais da Selecon com gabarito oficial e simulados. Todo registro alimenta o desempenho.`}
       />
-      <div className="mb-5 grid grid-cols-3 gap-1 rounded-2xl border border-white/[0.07] bg-ink-900/60 p-1 sm:inline-grid">
+      <div className="mb-5 grid grid-cols-2 gap-1 rounded-2xl border border-white/[0.07] bg-ink-900/60 p-1 sm:inline-grid sm:grid-cols-4">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -326,6 +328,7 @@ export function Questions() {
         ))}
       </div>
       {tab === 'banco' && <QuestionBank />}
+      {tab === 'provas' && <PastExams />}
       {tab === 'manual' && <ManualLog />}
       {tab === 'simulados' && <Simulados />}
     </section>

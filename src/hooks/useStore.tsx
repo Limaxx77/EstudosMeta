@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { loadState, normalizeState, saveState, STORAGE_KEY } from '../services/storage';
+import type { Profile } from '../data/profiles';
+import { loadState, normalizeState, saveState, storageKey } from '../services/storage';
 import type { AppState } from '../types';
 
 type Recipe = (draft: AppState) => void;
@@ -9,12 +10,19 @@ interface StoreValue {
   update: (recipe: Recipe) => void;
   replace: (next: AppState) => void;
   storageError: string | null;
+  profile: Profile;
+  logout: () => void;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
 
-export function StoreProvider({ children }: { children: ReactNode }) {
-  const initial = useRef(loadState());
+/**
+ * Guarda os dados do perfil logado. Use com `key={profile.id}` para que trocar
+ * de perfil recrie o estado do zero, sem misturar dados.
+ */
+export function StoreProvider({ profile, logout, children }: { profile: Profile; logout: () => void; children: ReactNode }) {
+  const initial = useRef<ReturnType<typeof loadState> | null>(null);
+  if (!initial.current) initial.current = loadState(profile.id);
   const [state, setState] = useState<AppState>(initial.current.state);
   const [storageError, setStorageError] = useState<string | null>(initial.current.error);
   const skipSave = useRef(false);
@@ -34,14 +42,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       skipSave.current = false;
       return;
     }
-    const err = saveState(state);
+    const err = saveState(state, profile.id);
     setStorageError((prev) => (err ? err : prev && prev.startsWith('Falha ao salvar') ? null : prev));
-  }, [state]);
+  }, [state, profile.id]);
 
-  // Mantém várias abas do mesmo navegador sincronizadas.
+  // Mantém várias abas do mesmo navegador sincronizadas (mesmo perfil).
   useEffect(() => {
+    const key = storageKey(profile.id);
     const onStorage = (e: StorageEvent) => {
-      if (e.key !== STORAGE_KEY || !e.newValue) return;
+      if (e.key !== key || !e.newValue) return;
       try {
         skipSave.current = true;
         setState(normalizeState(JSON.parse(e.newValue)));
@@ -51,9 +60,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  }, [profile.id]);
 
-  const value = useMemo(() => ({ state, update, replace, storageError }), [state, update, replace, storageError]);
+  const value = useMemo(() => ({ state, update, replace, storageError, profile, logout }), [state, update, replace, storageError, profile, logout]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 
