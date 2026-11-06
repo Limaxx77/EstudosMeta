@@ -1,11 +1,20 @@
 // Gera sal + hash para trocar a senha de um perfil em src/data/profiles.ts.
 // Uso:  node scripts/hash-senha.mjs "nova senha"
 // Copie os valores impressos para os campos "salt" e "hash" do perfil.
+// A senha é normalizada como no login (src/services/auth.ts): maiúsculas,
+// acentos, espaços, hífens, pontos e sublinhados não fazem diferença.
 import { webcrypto as crypto } from 'node:crypto';
 
-const password = process.argv[2];
-if (!password || password.length < 10) {
-  console.error('Informe a nova senha entre aspas (mínimo de 10 caracteres).');
+const normalize = (pw) =>
+  pw
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '') // remove acentos
+    .toLowerCase()
+    .replace(/[\s\-_.]/g, '');
+
+const password = normalize(process.argv[2] ?? '');
+if (password.length < 8) {
+  console.error('Informe a nova senha entre aspas (mínimo de 8 letras/números).');
   process.exit(1);
 }
 const salt = crypto.getRandomValues(new Uint8Array(16));

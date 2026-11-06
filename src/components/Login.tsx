@@ -1,11 +1,24 @@
-import { Eye, EyeOff, Lock, LogIn, Target } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
-import type { Profile } from '../data/profiles';
+import { Check, Eye, EyeOff, Lock, LogIn, Target } from 'lucide-react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { PROFILE_MAP, PROFILES, type Profile } from '../data/profiles';
 import { login } from '../services/auth';
 import { Button, Card, Field, inputCls } from './ui';
 
+const LAST_KEY = 'minha-aprovacao:ultimo-perfil';
+
 export function Login({ onLogin }: { onLogin: (profile: Profile, remember: boolean) => void }) {
-  const [email, setEmail] = useState('');
+  const [profileId, setProfileId] = useState<string>(() => {
+    try {
+      const last = localStorage.getItem(LAST_KEY);
+      return last && PROFILE_MAP[last] ? last : '';
+    } catch {
+      return '';
+    }
+  });
+  const passwordRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (profileId) passwordRef.current?.focus();
+  }, [profileId]);
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [remember, setRemember] = useState(true);
@@ -18,7 +31,12 @@ export function Login({ onLogin }: { onLogin: (profile: Profile, remember: boole
     setBusy(true);
     setError(null);
     try {
-      const profile = await login(email, password);
+      const profile = await login(profileId, password);
+      try {
+        localStorage.setItem(LAST_KEY, profile.id);
+      } catch {
+        /* ignora */
+      }
       onLogin(profile, remember);
     } catch (err) {
       setError((err as Error).message);
@@ -39,22 +57,39 @@ export function Login({ onLogin }: { onLogin: (profile: Profile, remember: boole
         </div>
         <Card className="p-6">
           <form onSubmit={submit} className="grid gap-4" noValidate>
-            <Field label="E-mail">
-              <input
-                className={inputCls}
-                type="email"
-                inputMode="email"
-                autoComplete="username"
-                autoCapitalize="none"
-                spellCheck={false}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </Field>
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium text-slate-300">Quem vai estudar?</legend>
+              <div className="grid grid-cols-2 gap-3">
+                {PROFILES.map((p) => {
+                  const active = p.id === profileId;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setProfileId(p.id);
+                        setError(null);
+                      }}
+                      aria-pressed={active}
+                      className={`relative flex flex-col items-center gap-2 rounded-xl border px-3 py-4 text-center transition ${
+                        active ? 'border-accent bg-accent/10 ring-1 ring-accent/40' : 'border-white/10 bg-white/[0.03] hover:border-white/25'
+                      }`}
+                    >
+                      {active && <Check size={15} className="absolute right-2 top-2 text-accent" />}
+                      <span className={`flex h-11 w-11 items-center justify-center rounded-full text-base font-bold ${active ? 'bg-accent text-ink-950' : 'bg-white/10 text-white'}`}>
+                        {p.firstName.slice(0, 1)}
+                      </span>
+                      <span className="text-sm font-semibold text-white">{p.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+            <input type="text" hidden readOnly autoComplete="username" value={PROFILE_MAP[profileId]?.email ?? ''} />
             <Field label="Senha">
               <div className="relative">
                 <input
+                  ref={passwordRef}
                   className={`${inputCls} pr-11`}
                   type={show ? 'text' : 'password'}
                   autoComplete="current-password"
@@ -74,6 +109,7 @@ export function Login({ onLogin }: { onLogin: (profile: Profile, remember: boole
                 </button>
               </div>
             </Field>
+            <p className="-mt-2 text-xs text-slate-500">Maiúsculas, espaços e hífens não fazem diferença.</p>
             <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-300">
               <input type="checkbox" className="h-4 w-4 accent-accent" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
               Manter conectado neste aparelho
@@ -83,7 +119,7 @@ export function Login({ onLogin }: { onLogin: (profile: Profile, remember: boole
                 {error}
               </p>
             )}
-            <Button type="submit" variant="primary" size="lg" disabled={busy || !email || !password}>
+            <Button type="submit" variant="primary" size="lg" disabled={busy || !profileId || !password}>
               <LogIn size={18} /> {busy ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>

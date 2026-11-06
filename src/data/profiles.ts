@@ -7,8 +7,9 @@
 // código-fonte pode tentar adivinhar senhas fracas. Não reutilize essas
 // senhas em outros serviços.
 //
-// Para trocar uma senha: gere novo sal + hash (210.000 iterações) e
-// substitua os valores abaixo.
+// Para trocar uma senha: rode  node scripts/hash-senha.mjs "nova senha"  e
+// substitua os valores abaixo. Maiúsculas, acentos, espaços e hífens
+// não importam na hora de digitar a senha.
 // =====================================================================
 
 export interface Profile {
@@ -28,16 +29,16 @@ export const PROFILES: Profile[] = [
     name: 'Kauã Lima',
     firstName: 'Kauã',
     email: 'kaua.lima@aprovacao.local',
-    salt: '2cf61e1848d8e0bd64e3f5c641629cb9',
-    hash: '35b37502efa473783880b90166ac86e2c135247da3e1530345c6d7c7b396d330',
+    salt: '85171106419ae5b8c4461f57d4a0ab82',
+    hash: '63d72b90f8dec670a1d6feb08be36243c8caa07a9758532c906f2ef2e700978e',
   },
   {
     id: 'anny',
     name: 'Anny Barbosa',
     firstName: 'Anny',
     email: 'anny.barbosa@aprovacao.local',
-    salt: 'ce17d276324cff7ec46649d4ecb59c2f',
-    hash: 'c3ad5fc4a52155c0811c043c7a29f95ea2ac3d7c5f37f12b1a93375cda30a3fc',
+    salt: '01b15d18208df6efd815ee4ef35c1d26',
+    hash: '6e10c88551ada8cbe0a0a672b0a733e822e20109b372c6af9b7ad6b2a89d9c31',
   },
 ];
 

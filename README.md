@@ -8,7 +8,7 @@ Sem backend e sem banco de dados: todo o progresso fica no `localStorage` do nav
 
 O site tem dois perfis com e-mail e senha: Kauã Lima e Anny Barbosa. Cada perfil guarda os próprios dados, separados, na chave `minha-aprovacao:state:<perfil>`. Os dados antigos, de antes dos perfis, foram migrados automaticamente para o perfil do Kauã.
 
-- O login é verificado no próprio navegador. O código guarda só o sal e o hash PBKDF2 de cada senha, nunca a senha.
+- Para entrar, toque no seu nome e digite a senha. Maiúsculas, acentos, espaços e hífens não fazem diferença. O login é verificado no próprio navegador e funciona também em navegadores que bloqueiam o WebCrypto. O código guarda só o sal e o hash PBKDF2 de cada senha, nunca a senha.
 - Isso separa os dados e evita acesso casual, mas **não** é segurança de servidor. Não reutilize essas senhas em outros serviços.
 - Os dados **não sincronizam** entre aparelhos. Para continuar em outro aparelho, exporte o backup e importe-o no outro.
 - **Trocar uma senha:** rode `node scripts/hash-senha.mjs "nova senha"` e cole o `salt` e o `hash` impressos no perfil, em `src/data/profiles.ts`.

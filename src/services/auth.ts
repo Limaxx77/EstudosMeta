@@ -1,4 +1,5 @@
-import { PBKDF2_ITERATIONS, PROFILE_MAP, PROFILES, type Profile } from '../data/profiles';
+import { PBKDF2_ITERATIONS, PROFILE_MAP, type Profile } from '../data/profiles';
+import { pbkdf2Sha256 } from './pbkdf2';
 
 const SESSION_KEY = 'minha-aprovacao:sessao';
 
@@ -13,20 +14,45 @@ function sameHex(a: string, b: string): boolean {
   return diff === 0;
 }
 
-async function derive(password: string, saltHex: string): Promise<string> {
-  const subtle = globalThis.crypto?.subtle;
-  if (!subtle) throw new Error('Este navegador bloqueou a verificação de senha. Abra o site pelo endereço https:// (ou localhost).');
-  const key = await subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
-  const bits = await subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: fromHex(saltHex), iterations: PBKDF2_ITERATIONS }, key, 256);
-  return toHex(bits);
+/**
+ * Deixa a senha "tolerante": ignora maiúsculas/minúsculas, acentos, espaços,
+ * hífens, pontos e sublinhados. Assim "Anny Cuiaba 2026", "anny-cuiabá-2026"
+ * e "ANNYCUIABA2026" valem a mesma coisa. Mantenha igual a scripts/hash-senha.mjs.
+ */
+export function normalizePassword(password: string): string {
+  return password
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '') // remove acentos
+    .toLowerCase()
+    .replace(/[\s\-_.]/g, '');
 }
 
-export async function login(email: string, password: string): Promise<Profile> {
-  const normalized = email.trim().toLowerCase();
-  const profile = PROFILES.find((p) => p.email === normalized);
-  // Calcula o hash mesmo quando o e-mail não existe, para o tempo de resposta ser igual.
-  const hash = await derive(password, profile?.salt ?? PROFILES[0].salt);
-  if (!profile || !sameHex(hash, profile.hash)) throw new Error('E-mail ou senha incorretos.');
+async function derive(password: string, saltHex: string): Promise<string> {
+  const pw = new TextEncoder().encode(normalizePassword(password));
+  const salt = fromHex(saltHex);
+  const subtle = globalThis.crypto?.subtle;
+  if (subtle) {
+    try {
+      const key = await subtle.importKey('raw', pw, 'PBKDF2', false, ['deriveBits']);
+      const bits = await subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: PBKDF2_ITERATIONS }, key, 256);
+      return toHex(bits);
+    } catch {
+      /* cai no cálculo em JavaScript abaixo */
+    }
+  }
+  // Navegador sem crypto.subtle (site aberto por http:// ou IP): calcula em JS.
+  await new Promise((r) => setTimeout(r, 30)); // deixa o "Entrando..." aparecer
+  return toHex(pbkdf2Sha256(pw, salt, PBKDF2_ITERATIONS).buffer as ArrayBuffer);
+}
+
+/** Entra no perfil escolhido. Aceita o id do perfil ou o e-mail dele. */
+export async function login(profileIdOrEmail: string, password: string): Promise<Profile> {
+  const key = profileIdOrEmail.trim().toLowerCase();
+  const profile = PROFILE_MAP[key] ?? Object.values(PROFILE_MAP).find((p) => p.email === key);
+  if (!profile) throw new Error('Escolha o seu nome acima.');
+  if (!normalizePassword(password)) throw new Error('Digite a senha.');
+  const hash = await derive(password, profile.salt);
+  if (!sameHex(hash, profile.hash)) throw new Error('Senha incorreta. Confira e tente de novo.');
   return profile;
 }
 
