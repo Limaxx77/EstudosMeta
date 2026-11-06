@@ -4,9 +4,17 @@ export const TZ_OFFSET = '-04:00';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** Data de hoje (YYYY-MM-DD) no fuso de Cuiabá. */
+/**
+ * O "dia de estudo" vira às 04:00, não à meia-noite. Quem estuda à noite e
+ * passa da meia-noite continua no mesmo dia: questões, revisões e marcações
+ * feitas entre 00:00 e 03:59 contam para o dia anterior.
+ */
+export const STUDY_DAY_CUTOFF_HOURS = 4;
+
+/** Data do dia de estudo atual (YYYY-MM-DD) no fuso de Cuiabá. */
 export function todayISO(now: number = Date.now()): string {
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(now));
+  const shifted = new Date(now - STUDY_DAY_CUTOFF_HOURS * 3600000);
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(shifted);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
   return `${get('year')}-${get('month')}-${get('day')}`;
 }

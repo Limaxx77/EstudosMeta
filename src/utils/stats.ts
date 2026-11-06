@@ -198,8 +198,9 @@ export function dayGoal(state: AppState, plan: DayPlan, today: string): DayGoal 
 
   const complete = items.every((i) => i.done);
   const avg = items.reduce((a, i) => a + i.progress, 0) / items.length;
-  // Nunca mostra 100% se houver requisito pendente.
-  const percent = complete ? 100 : Math.min(99, Math.floor(avg * 100));
+  // Dia concluído pelo usuário conta 100% (como no progresso geral). Fora
+  // isso, nunca mostra 100% se houver requisito pendente.
+  const percent = complete || p.completed ? 100 : Math.min(99, Math.floor(avg * 100));
   return { items, percent, complete, remaining: items.filter((i) => !i.done) };
 }
 
